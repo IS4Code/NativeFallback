@@ -1,0 +1,17 @@
+{
+    "user": "IllidanS4",
+    "repo": "NativeFallback",
+    "dependencies": ["sampctl/pawn-stdlib"],
+    "resources": [
+        {
+            "name": "NativeFallback.dll",
+            "platform": "windows",
+            "archive": false
+        },
+        {
+            "name": "NativeFallback.so",
+            "platform": "linux",
+            "archive": false
+        }
+    ]
+}
