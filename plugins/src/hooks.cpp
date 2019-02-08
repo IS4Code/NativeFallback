@@ -94,7 +94,7 @@ namespace hooks
 
 	int AMX_HOOK_FUNC(amx_Exec, AMX *amx, cell *retval, int index)
 	{
-		if(amx && (amx->flags & AMX_FLAG_NTVREG) == 0)
+		if(amx && (amx->flags & AMX_FLAG_BROWSE) == 0 && (amx->flags & AMX_FLAG_NTVREG) == 0)
 		{
 			int num;
 			amx_NumNatives(amx, &num);
