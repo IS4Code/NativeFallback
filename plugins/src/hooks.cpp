@@ -31,9 +31,23 @@ public:
 };
 
 template <int Index>
+class amx_hook;
+
+template <int Index>
+class amx_hook_var
+{
+	friend class amx_hook<Index>;
+
+	static subhook_t hook;
+};
+
+template <int Index>
+subhook_t amx_hook_var<Index>::hook;
+
+template <int Index>
 class amx_hook
 {
-	static subhook_t hook;
+	typedef amx_hook_var<Index> var;
 
 public:
 	template <class FType, typename amx_hook_func<FType>::hook_ftype *Func>
@@ -41,23 +55,33 @@ public:
 	{
 		static void load()
 		{
-			typename amx_hook_func<FType>::handler_ftype *hookfn = &amx_hook_func<FType>::template handler<hook, Func>;
+			typename amx_hook_func<FType>::handler_ftype *hookfn = &amx_hook_func<FType>::template handler<var::hook, Func>;
 
-			hook = subhook_new(reinterpret_cast<void*>(((FType*)pAMXFunctions)[Index]), reinterpret_cast<void*>(hookfn), {});
-			subhook_install(hook);
+			var::hook = subhook_new(reinterpret_cast<void*>(((FType*)pAMXFunctions)[Index]), reinterpret_cast<void*>(hookfn), {});
+			subhook_install(var::hook);
 		}
 
 		static void unload()
 		{
-			subhook_remove(hook);
-			subhook_free(hook);
+			subhook_remove(var::hook);
+			subhook_free(var::hook);
+		}
+
+		static void install()
+		{
+			subhook_install(var::hook);
+		}
+
+		static void uninstall()
+		{
+			subhook_remove(var::hook);
 		}
 
 		static FType orig()
 		{
-			if(subhook_is_installed(hook))
+			if(subhook_is_installed(var::hook))
 			{
-				return reinterpret_cast<FType>(subhook_get_trampoline(hook));
+				return reinterpret_cast<FType>(subhook_get_trampoline(var::hook));
 			}else{
 				return ((FType*)pAMXFunctions)[Index];
 			}
@@ -65,10 +89,10 @@ public:
 	};
 };
 
-template <int index>
-subhook_t amx_hook<index>::hook;
+#define AMX_HOOK_FUNC(Func, ...) Func(decltype(&::Func) _base_func, __VA_ARGS__) noexcept
+#define base_func _base_func
+#define amx_Hook(Func) amx_hook<PLUGIN_AMX_EXPORT_##Func>::ctl<decltype(&::amx_##Func), &hooks::amx_##Func>
 
-#define AMX_HOOK_FUNC(Func, ...) Func(decltype(&::Func) orig, __VA_ARGS__)
 namespace hooks
 {
 	constexpr size_t fallback_pool_size = 256;
@@ -140,11 +164,9 @@ namespace hooks
 
 			amx_Register(amx, fallback.data(), fallback.size());
 		}
-		return orig(amx, retval, index);
+		return base_func(amx, retval, index);
 	}
 }
-
-#define amx_Hook(Func) amx_hook<PLUGIN_AMX_EXPORT_##Func>::ctl<decltype(&::amx_##Func), &hooks::amx_##Func>
 
 void hooks::load()
 {
