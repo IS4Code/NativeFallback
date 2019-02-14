@@ -119,6 +119,29 @@ namespace hooks
 
 	using pool = aux::func<cell AMX_NATIVE_CALL(AMX *amx, cell *params)>::pool<fallback_pool_size, fallback_handler>;
 
+	AMX_NATIVE get_fallback(const std::string &name)
+	{
+		auto it = registered.find(name);
+		if(it != registered.end())
+		{
+			return it->second;
+		}else{
+			auto next = pool::add();
+			if(next.first == -1)
+			{
+				logprintf("[NativeFallback] Fallback function pool is full! Increase fallback_pool_size and recompile (currently %d).", fallback_pool_size);
+				next.first = functions.size();
+				next.second = default_fallback_handler;
+			}
+
+			assert(next.first == functions.size());
+			functions.emplace_back(name);
+
+			registered[name] = next.second;
+			return next.second;
+		}
+	}
+
 	int AMX_HOOK_FUNC(amx_Exec, AMX *amx, cell *retval, int index)
 	{
 		if(amx && (amx->flags & AMX_FLAG_BROWSE) == 0 && (amx->flags & AMX_FLAG_NTVREG) == 0)
@@ -143,25 +166,7 @@ namespace hooks
 
 					logprintf("[NativeFallback] Native function '%s' was not registered.", name);
 
-					auto it = registered.find(name);
-					if(it != registered.end())
-					{
-						fallback.emplace_back(AMX_NATIVE_INFO{name, it->second});
-					}else{
-						auto next = pool::add();
-						if(next.first == -1)
-						{
-							logprintf("[NativeFallback] Fallback function pool is full! Increase fallback_pool_size and recompile (currently %d).", fallback_pool_size);
-							next.first = functions.size();
-							next.second = default_fallback_handler;
-						}
-
-						assert(next.first == functions.size());
-						functions.emplace_back(name);
-
-						fallback.emplace_back(AMX_NATIVE_INFO{name, next.second});
-						registered[name] = next.second;
-					}
+					fallback.emplace_back(AMX_NATIVE_INFO{name, get_fallback(name)});
 				}
 			}
 

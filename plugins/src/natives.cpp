@@ -1,5 +1,6 @@
 #include "natives.h"
 #include "main.h"
+#include "hooks.h"
 
 namespace natives
 {
@@ -21,12 +22,18 @@ namespace natives
 		std::string name(native_name);
 		auto &reg_map = reg_native_map[amx];
 		auto it = reg_map.find(name);
-		if(it == reg_map.end() || registered.find(name) == registered.end())
+		auto &map = native_map[amx];
+		if(it != reg_map.end())
+		{
+			map[index] = it->second;
+		}else{
+			map[index] = hooks::get_fallback(name);
+		}
+
+		if(registered.find(name) != registered.end())
 		{
 			return 0;
 		}
-		auto &map = native_map[amx];
-		map[index] = it->second;
 		return 1;
 	}
 
