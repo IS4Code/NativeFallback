@@ -1,4 +1,4 @@
-Native Fallback v1.0
+Native Fallback v1.1
 ==========
 
 This plugin provides a fallback implementation for all native functions that are imported by any script, allowing it to be executed without missing functions.
@@ -7,6 +7,8 @@ The fallback implementation raises AMX_ERR_NOTFOUND and prints its name, when th
 
 ## Installation
 Download the latest [release](//github.com/IllidanS4/NativeFallback/releases/latest) for your platform to the "plugins" directory and add "NativeFallback" (or "NativeFallback.so" on Linux) to the `plugins` line in server.cfg.
+
+Include [NativeFallback.inc](pawno/include/NativeFallback.inc) in your Pawn program to use native functions provided in this plugin, like `NativeExists` and `MapNative`.
 
 ## Building
 Use Visual Studio to build the project on Windows, or `make` on Linux.
