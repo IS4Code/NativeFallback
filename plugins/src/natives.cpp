@@ -11,8 +11,6 @@ namespace natives
 			amx_RaiseError(amx, AMX_ERR_NATIVE);
 			return 0;
 		}
-		auto &map = native_map[amx];
-		auto &reg_map = reg_native_map[amx];
 
 		const char *native_name;
 		amx_StrParam(amx, native, native_name);
@@ -20,11 +18,14 @@ namespace natives
 		{
 			return 0;
 		}
-		auto it = reg_map.find(native_name);
-		if(it == reg_map.end())
+		std::string name(native_name);
+		auto &reg_map = reg_native_map[amx];
+		auto it = reg_map.find(name);
+		if(it == reg_map.end() || registered.find(name) == registered.end())
 		{
 			return 0;
 		}
+		auto &map = native_map[amx];
 		map[index] = it->second;
 		return 1;
 	}
