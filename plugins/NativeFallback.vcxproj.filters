@@ -13,6 +13,9 @@
     <ClCompile Include="src\hooks.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="src\natives.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="lib\sdk\plugincommon.h">
@@ -55,6 +58,9 @@
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="src\func_pool.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\natives.h">
       <Filter>src</Filter>
     </ClInclude>
   </ItemGroup>

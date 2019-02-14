@@ -2,22 +2,15 @@
 #define MAIN_H_INCLUDED
 
 #include "sdk/amx/amx.h"
-#include <utility>
+#include <vector>
+#include <unordered_map>
 
 typedef void(*logprintf_t)(const char* format, ...);
 extern logprintf_t logprintf;
 
-template <class... Args>
-void logerror(AMX *amx, const char *format, Args&&... args)
-{
-	logprintf(format, std::forward<Args>(args)...);
-	amx_RaiseError(amx, AMX_ERR_NATIVE);
-}
+extern std::unordered_map<std::string, AMX_NATIVE> registered;
 
-template <class... Args>
-void logwarn(AMX *amx, const char *format, Args&&... args)
-{
-	logprintf(format, std::forward<Args>(args)...);
-}
+extern std::unordered_map<AMX*, std::unordered_map<cell, AMX_NATIVE>> native_map;
+extern std::unordered_map<AMX*, std::unordered_map<std::string, AMX_NATIVE>> reg_native_map;
 
 #endif

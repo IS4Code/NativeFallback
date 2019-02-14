@@ -1,5 +1,6 @@
 #include "hooks.h"
 #include "main.h"
+#include "natives.h"
 #include "func_pool.h"
 
 #include "sdk/amx/amx.h"
@@ -7,6 +8,7 @@
 #include "subhook/subhook.h"
 
 #include <cassert>
+#include <cstring>
 #include <vector>
 #include <unordered_map>
 
@@ -89,7 +91,7 @@ public:
 	};
 };
 
-#define AMX_HOOK_FUNC(Func, ...) Func(decltype(&::Func) _base_func, __VA_ARGS__) noexcept
+#define AMX_HOOK_FUNC(Func, ...) AMXAPI Func(decltype(&::Func) _base_func, __VA_ARGS__) noexcept
 #define base_func _base_func
 #define amx_Hook(Func) amx_hook<PLUGIN_AMX_EXPORT_##Func>::ctl<decltype(&::amx_##Func), &hooks::amx_##Func>
 
@@ -97,17 +99,18 @@ namespace hooks
 {
 	constexpr size_t fallback_pool_size = 256;
 
-	std::vector<std::string> functions;
-	std::unordered_map<std::string, AMX_NATIVE> registered;
+	static std::vector<std::string> functions;
 
-	cell fallback_handler(size_t id, AMX *amx, cell *params)
+	static subhook_t getproperty_hook = nullptr;
+
+	static cell fallback_handler(size_t id, AMX *amx, cell *params)
 	{
 		logprintf("[NativeFallback] Implementation for '%s' was not provided.", functions[id].c_str());
 		amx_RaiseError(amx, AMX_ERR_NOTFOUND);
 		return 0;
 	}
 
-	cell default_fallback_handler(AMX *amx, cell *params)
+	static cell default_fallback_handler(AMX *amx, cell *params)
 	{
 		logprintf("[NativeFallback] Implementation for native function was not provided.");
 		amx_RaiseError(amx, AMX_ERR_NOTFOUND);
@@ -166,14 +169,90 @@ namespace hooks
 		}
 		return base_func(amx, retval, index);
 	}
+
+	int AMX_HOOK_FUNC(amx_Callback, AMX *amx, cell index, cell *result, cell *params)
+	{
+		AMX_HEADER *hdr;
+		if(index >= 0 || !amx || !(hdr = reinterpret_cast<AMX_HEADER*>(amx->base)))
+		{
+			return base_func(amx, index, result, params);
+		}
+		auto &map = native_map[amx];
+		auto it = map.find(index);
+		if(it == map.end())
+		{
+			return base_func(amx, index, result, params);
+		}
+		auto f = it->second;
+
+		if(amx->sysreq_d != 0)
+		{
+			auto code = reinterpret_cast<cell*>(amx->base + hdr->cod + amx->cip - sizeof(cell));
+			if(code[-1] == 123 && code[0] == index)
+			{
+				code[-1] = amx->sysreq_d;
+				code[0] = reinterpret_cast<cell>(f);
+			}
+		}
+
+		amx->error = AMX_ERR_NONE;
+		*result = f(amx, params);
+		return amx->error;
+	}
+
+	static cell AMX_NATIVE_CALL hook_getproperty(AMX *amx, cell *params)
+	{
+		auto trampoline = reinterpret_cast<AMX_NATIVE>(subhook_get_trampoline(getproperty_hook));
+		if(!amx || !params || static_cast<ucell>(params[0]) < 3 * sizeof(cell))
+		{
+			return trampoline(amx, params);
+		}
+		switch(params[1])
+		{
+			case 0x4E464D4E:
+				return natives::MapNative(amx, params[3], params[2]);
+			case 0x4E464E45:
+				return natives::NativeExists(amx, params[2]);
+			default:
+				return trampoline(amx, params);
+		}
+	}
+
+	int AMX_HOOK_FUNC(amx_Register, AMX *amx, const AMX_NATIVE_INFO *nativelist, int number)
+	{
+		int ret = base_func(amx, nativelist, number);
+		auto &map = reg_native_map[amx];
+		for(int i = 0; nativelist[i].name != nullptr && (i < number || number == -1); i++)
+		{
+			if(!getproperty_hook)
+			{
+				if(!std::strcmp(nativelist[i].name, "getproperty"))
+				{
+					getproperty_hook = subhook_new(reinterpret_cast<void*>(nativelist[i].func), reinterpret_cast<void*>(hook_getproperty), {});
+					subhook_install(getproperty_hook);
+				}
+			}
+			map[nativelist[i].name] = nativelist[i].func;
+		}
+		return ret;
+	}
 }
 
 void hooks::load()
 {
 	amx_Hook(Exec)::load();
+	amx_Hook(Callback)::load();
+	amx_Hook(Register)::load();
 }
 
 void hooks::unload()
 {
 	amx_Hook(Exec)::unload();
+	amx_Hook(Callback)::unload();
+	amx_Hook(Register)::unload();
+	if(getproperty_hook)
+	{
+		subhook_remove(getproperty_hook);
+		subhook_free(getproperty_hook);
+	}
 }

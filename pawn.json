@@ -1,6 +1,7 @@
 {
     "user": "IllidanS4",
     "repo": "NativeFallback",
+    "include_path": "pawno/include",
     "dependencies": ["sampctl/pawn-stdlib"],
     "resources": [
         {

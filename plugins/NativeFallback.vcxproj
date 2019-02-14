@@ -134,6 +134,7 @@
   <ItemGroup>
     <ClCompile Include="lib\sdk\amxplugin.cpp" />
     <ClCompile Include="lib\subhook\subhook.c" />
+    <ClCompile Include="src\natives.cpp" />
     <ClInclude Include="lib\sdk\amx\amx.h" />
     <ClInclude Include="lib\sdk\amx\getch.h" />
     <ClInclude Include="lib\sdk\amx\sclinux.h" />
@@ -162,6 +163,7 @@
     <ClInclude Include="src\func_pool.h" />
     <ClInclude Include="src\hooks.h" />
     <ClInclude Include="src\main.h" />
+    <ClInclude Include="src\natives.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="NativeFallback.def" />
